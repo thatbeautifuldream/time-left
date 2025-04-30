@@ -129,12 +129,10 @@ export function WeeksGrid({ weeksLived, totalWeeks }: WeeksGridProps) {
     for (let week = 1; week <= totalWeeks; week++) {
       const isLived = week <= weeksLived;
       items.push(
-        <div
+        <motion.div
           key={week}
           className={`
             absolute 
-            transition-all 
-            duration-150 
             ${isLived ? 'bg-primary hover:bg-primary/80' : 'bg-muted hover:bg-muted-foreground/30'}
             hover:scale-125
             hover:shadow-md
@@ -145,7 +143,15 @@ export function WeeksGrid({ weeksLived, totalWeeks }: WeeksGridProps) {
           style={{
             width: boxSize,
             height: boxSize,
-            transform: `translate(${((week - 1) % columns) * (boxSize + gapSize)}px, ${Math.floor((week - 1) / columns) * (boxSize + gapSize)}px)`,
+            left: ((week - 1) % columns) * (boxSize + gapSize),
+            top: Math.floor((week - 1) / columns) * (boxSize + gapSize),
+          }}
+          layout
+          transition={{
+            type: "spring",
+            stiffness: 300,
+            damping: 30,
+            mass: 0.8
           }}
           onMouseEnter={handleMouseEnter(week)}
           onMouseLeave={handleMouseLeave}
