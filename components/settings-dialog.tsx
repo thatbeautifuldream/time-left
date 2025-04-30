@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label"
 import { useStore } from "@/lib/store"
 import { Cog } from "lucide-react"
 import { useState } from "react"
+import moment from "moment"
 
 interface SettingsDialogProps {
     birthdate: string
@@ -58,7 +59,7 @@ export function SettingsDialog({
                         </div>
                     </div>
                     <div>
-                        <Label htmlFor="birth-date-settings">Birth Date</Label>
+                        <Label htmlFor="birth-date-settings">Birth Date ({birthdate ? moment(birthdate).format('LL') : 'N/A'})</Label>
                         <div className="min-h-[350px] mt-1">
                             <Calendar
                                 mode="single"
