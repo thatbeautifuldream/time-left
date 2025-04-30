@@ -25,6 +25,8 @@ export function StateDebugger() {
 
         const unsubFinished = useStore.persist.onFinishHydration(() => {
             setHydrationState("Hydrated")
+            // Load cookies after hydration completes
+            loadCookies()
         })
 
         // Check if hasHydrated
@@ -33,9 +35,18 @@ export function StateDebugger() {
             setHydrationState("Already Hydrated")
         }
 
+        // Subscribe to store changes
+        const unsubscribeFromStore = useStore.subscribe(
+            () => {
+                // Refresh cookies when store changes
+                loadCookies()
+            }
+        )
+
         return () => {
             unsubHydrate()
             unsubFinished()
+            unsubscribeFromStore()
         }
     }, [])
 
