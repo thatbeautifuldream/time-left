@@ -1,16 +1,16 @@
 "use client"
 
+import { ThemeToggle } from "@/components/theme-toggle"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { WeeksGrid } from "@/components/weeks-grid"
-import { ThemeToggle } from "@/components/theme-toggle"
 import { useStore } from "@/lib/store"
 import { differenceInWeeks } from "date-fns"
-import { useState, useEffect } from "react"
 import { Cog } from "lucide-react"
+import { useEffect, useState } from "react"
 
 const WEEKS_IN_YEAR = 52
 
@@ -39,7 +39,6 @@ export default function Home() {
 
   const weeksLived = birthdate ? differenceInWeeks(new Date(), new Date(birthdate)) : 0
   const totalWeeks = lifeExpectancy * WEEKS_IN_YEAR
-  const weeksLeft = totalWeeks - weeksLived
 
   if (!birthdate) {
     return (
@@ -78,16 +77,10 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
-      <header className="flex flex-col items-center justify-between gap-2 border-b p-4 sm:flex-row">
-        <div>
-          <h1 className="text-2xl font-bold">Time Left</h1>
-          <p className="text-muted-foreground">
-            You have <span className="font-semibold">{weeksLeft.toLocaleString()}</span> weeks left to live.
-          </p>
-          <p className="text-muted-foreground">
-            You have already lived <span className="font-semibold">{weeksLived.toLocaleString()}</span> weeks.
-          </p>
-        </div>
+      <header className="flex items-center justify-between border-b p-4">
+        <p className="text-muted-foreground">
+          You've lived <span className="font-semibold">{weeksLived.toLocaleString()}</span> weeks out of <span className="font-semibold">{totalWeeks.toLocaleString()}</span> weeks
+        </p>
         <div className="flex items-center gap-2">
           {mounted && <ThemeToggle />}
           <Button
