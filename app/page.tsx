@@ -1,95 +1,14 @@
-"use client"
+import { Metadata } from "next"
+import { cookies } from "next/headers"
+import { HomeClient } from "./page.client"
 
-import { ThemeToggle } from "@/components/theme-toggle"
-import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { SettingsDialog } from "@/components/settings-dialog"
-import { WeeksGrid } from "@/components/weeks-grid"
-import { useStore } from "@/lib/store"
-import { differenceInWeeks } from "date-fns"
-import { useEffect, useState } from "react"
-
-const WEEKS_IN_YEAR = 52
+export const metadata: Metadata = {
+  title: "Time Left - Visualize Your Life in Weeks",
+  description: "A simple app to visualize how much time you have left to live, represented in weeks.",
+  keywords: ["life calendar", "weeks", "visualization", "mortality", "productivity"],
+}
 
 export default function Home() {
-  const { birthdate, lifeExpectancy, setBirthdate, setLifeExpectancy } = useStore()
-  const [date, setDate] = useState<Date | undefined>(birthdate ? new Date(birthdate) : undefined)
-  const [mounted, setMounted] = useState(false)
-
-  // useEffect only runs on the client, so now we can safely show the UI
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  const handleSaveBirthdate = () => {
-    if (date) {
-      setBirthdate(date.toISOString())
-    }
-  }
-
-  const weeksLived = birthdate ? differenceInWeeks(new Date(), new Date(birthdate)) : 0
-  const totalWeeks = lifeExpectancy * WEEKS_IN_YEAR
-
-  if (!birthdate) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>When were you born?</CardTitle>
-            <CardDescription>
-              We'll use this to calculate how many weeks you've lived and how many you have left.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <div className="flex flex-col space-y-2">
-              <Label htmlFor="birth-date">Select your birth date</Label>
-              <div className="min-h-[350px]">
-                <Calendar
-                  mode="single"
-                  selected={date}
-                  onSelect={setDate}
-                  disabled={{ after: new Date() }}
-                  className="mx-auto"
-                  initialFocus
-                  showYearSwitcher={true}
-                />
-              </div>
-            </div>
-
-            <Button onClick={handleSaveBirthdate} disabled={!date}>
-              Continue
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
-  return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground">
-      <header className="flex items-center justify-between border-b p-4">
-        <p className="text-muted-foreground">
-          You've lived <span className="font-semibold">{weeksLived.toLocaleString()}</span> weeks out of <span className="font-semibold">{totalWeeks.toLocaleString()}</span> weeks
-        </p>
-        <div className="flex items-center gap-2">
-          {mounted && <ThemeToggle />}
-          {mounted && (
-            <SettingsDialog
-              birthdate={birthdate}
-              lifeExpectancy={lifeExpectancy}
-              setBirthdate={setBirthdate}
-              setLifeExpectancy={setLifeExpectancy}
-            />
-          )}
-        </div>
-      </header>
-
-      <main className="flex-1 p-4">
-        <WeeksGrid weeksLived={weeksLived} totalWeeks={totalWeeks} />
-      </main>
-    </div>
-  )
+  // Server-side check - if no birthdate is found in cookies, middleware will redirect
+  return <HomeClient />
 }

@@ -1,7 +1,8 @@
 "use client";
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
+import cookiesStorage from "./cookie-storage";
 import { z } from "zod";
 
 export const lifeExpectancySchema = z.number().min(1).max(200).int().positive();
@@ -52,6 +53,11 @@ export const useStore = create<TimeLeftState>()(
     }),
     {
       name: "time-left-storage",
+      storage: createJSONStorage(() => cookiesStorage),
+      partialize: (state) => ({
+        birthdate: state.birthdate,
+        lifeExpectancy: state.lifeExpectancy,
+      }),
     }
   )
 );
