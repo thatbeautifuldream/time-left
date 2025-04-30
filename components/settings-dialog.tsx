@@ -4,9 +4,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useStore } from "@/lib/store"
-import { Cog } from "lucide-react"
+import { Cog, Plus, Minus } from "lucide-react"
 import { useState } from "react"
 import moment from "moment"
+import NumberFlow from '@number-flow/react'
 
 interface SettingsDialogProps {
     birthdate: string
@@ -47,15 +48,26 @@ export function SettingsDialog({
                 <div className="flex flex-col gap-4 py-4">
                     <div>
                         <Label htmlFor="life-expectancy">Life Expectancy (years)</Label>
-                        <div className="flex gap-2 mt-1">
-                            <Input
-                                id="life-expectancy"
-                                type="number"
-                                min={1}
-                                max={200}
-                                value={lifeExpectancy}
-                                onChange={(e) => validateAndSetLifeExpectancy(Number(e.target.value))}
-                            />
+                        <div className="flex items-center gap-2 mt-1">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => validateAndSetLifeExpectancy(Math.max(1, lifeExpectancy - 1))}
+                                aria-label="Decrease life expectancy"
+                            >
+                                <Minus className="h-4 w-4" />
+                            </Button>
+                            <div className="flex-1 text-center text-7xl">
+                                <NumberFlow value={lifeExpectancy} />
+                            </div>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => validateAndSetLifeExpectancy(Math.min(200, lifeExpectancy + 1))}
+                                aria-label="Increase life expectancy"
+                            >
+                                <Plus className="h-4 w-4" />
+                            </Button>
                         </div>
                     </div>
                     <div>
@@ -71,7 +83,6 @@ export function SettingsDialog({
                             />
                         </div>
                     </div>
-                    <Button onClick={handleClose} className="mt-4">Close</Button>
                 </div>
             </DialogContent>
         </Dialog>
