@@ -18,10 +18,63 @@ function debounce<T extends (...args: any[]) => any>(
   };
 }
 
-// Helper function to get CSS variable value
-function getCssVariableValue(variableName: string): string {
-  const value = getComputedStyle(document.documentElement).getPropertyValue(variableName).trim();
-  return value;
+// Function to interpolate between colors
+function interpolateColor(color1: [number, number, number], color2: [number, number, number], factor: number): string {
+  const r = Math.round(color1[0] + factor * (color2[0] - color1[0]));
+  const g = Math.round(color1[1] + factor * (color2[1] - color1[1]));
+  const b = Math.round(color1[2] + factor * (color2[2] - color1[2]));
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+// Function to generate a color from the heatmap gradient
+function getHeatmapColor(percentage: number, isDarkMode: boolean): string {
+  // Color ranges from cold (blue) to hot (red)
+  // Different palettes for light and dark mode
+  const lightModeColors: Array<[number, number, number]> = [
+    [65, 105, 225],   // Royal Blue
+    [30, 144, 255],   // Dodger Blue
+    [0, 191, 255],    // Deep Sky Blue
+    [32, 178, 170],   // Light Sea Green
+    [46, 139, 87],    // Sea Green
+    [50, 205, 50],    // Lime Green
+    [255, 215, 0],    // Gold
+    [255, 165, 0],    // Orange
+    [255, 69, 0],     // Red-Orange
+    [255, 0, 0]       // Red
+  ];
+
+  const darkModeColors: Array<[number, number, number]> = [
+    [25, 25, 112],    // Midnight Blue
+    [0, 0, 139],      // Dark Blue
+    [0, 139, 139],    // Dark Cyan
+    [0, 100, 0],      // Dark Green
+    [107, 142, 35],   // Olive Drab
+    [154, 205, 50],   // Yellow Green
+    [218, 165, 32],   // Goldenrod
+    [210, 105, 30],   // Chocolate
+    [178, 34, 34],    // Firebrick
+    [220, 20, 60]     // Crimson
+  ];
+
+  const colors = isDarkMode ? darkModeColors : lightModeColors;
+
+  // Get the segment this percentage falls into
+  const numSegments = colors.length - 1;
+  const segment = Math.min(Math.floor(percentage * numSegments), numSegments - 1);
+
+  // Calculate how far into this segment we are (0-1)
+  const segmentPercentage = (percentage * numSegments) - segment;
+
+  // Interpolate between the colors in this segment
+  return interpolateColor(colors[segment], colors[segment + 1], segmentPercentage);
+}
+
+// Add an alpha channel to a color
+function addAlpha(color: string, alpha: number): string {
+  if (color.startsWith('rgb(')) {
+    return color.replace('rgb(', 'rgba(').replace(')', `, ${alpha})`);
+  }
+  return color;
 }
 
 interface WeeksGridProps {
@@ -42,85 +95,54 @@ export function WeeksGrid({ weeksLived, totalWeeks }: WeeksGridProps) {
     x: 0,
     y: 0
   })
+  const [isDarkMode, setIsDarkMode] = useState(false)
   const { birthdate } = useStore()
 
-  // Store color values
-  const [colors, setColors] = useState({
-    primary: '#3b82f6', // Default blue fallback
-    primaryHover: 'rgba(59, 130, 246, 0.8)', // Default blue with opacity
-    muted: '#e5e7eb', // Default gray fallback
-    mutedHover: 'rgba(107, 114, 128, 0.3)' // Default gray with opacity
-  });
+  // Check if dark mode is active 
+  const updateThemeMode = useCallback(() => {
+    // Check for dark mode
+    // First try to check if a 'dark' class exists on html or body
+    const isDark = document.documentElement.classList.contains('dark') ||
+      document.body.classList.contains('dark');
 
-  // Update colors from DOM elements - more reliable than CSS variables
-  const updateColors = useCallback(() => {
-    try {
-      // Create test elements to extract actual computed colors
+    // If that doesn't work, check if background is dark by creating a test element
+    if (!isDark) {
       const testEl = document.createElement('div');
-
-      // Get primary color
-      testEl.className = 'bg-primary';
+      testEl.className = 'bg-background';
       document.body.appendChild(testEl);
-      const primaryColor = window.getComputedStyle(testEl).backgroundColor;
-
-      // Get primary hover color by creating a semi-transparent version
-      // Convert from rgb to rgba with 0.8 opacity
-      let primaryHoverColor = primaryColor;
-      if (primaryColor.startsWith('rgb(')) {
-        primaryHoverColor = primaryColor.replace('rgb(', 'rgba(').replace(')', ', 0.8)');
-      }
-
-      // Get muted color
-      testEl.className = 'bg-muted';
-      const mutedColor = window.getComputedStyle(testEl).backgroundColor;
-
-      // Get muted hover - set this to a semi-transparent version of muted-foreground
-      testEl.className = 'text-muted-foreground';
-      const mutedForeground = window.getComputedStyle(testEl).color;
-      let mutedHoverColor = 'rgba(107, 114, 128, 0.3)'; // Fallback
-      if (mutedForeground.startsWith('rgb(')) {
-        mutedHoverColor = mutedForeground.replace('rgb(', 'rgba(').replace(')', ', 0.3)');
-      }
-
+      const bgColor = window.getComputedStyle(testEl).backgroundColor;
       document.body.removeChild(testEl);
 
-      setColors({
-        primary: primaryColor,
-        primaryHover: primaryHoverColor,
-        muted: mutedColor,
-        mutedHover: mutedHoverColor
-      });
-    } catch (error) {
-      console.error("Error updating colors:", error);
-      // Keep existing colors
+      // Parse RGB values
+      const rgb = bgColor.match(/\d+/g)?.map(Number);
+      if (rgb && rgb.length >= 3) {
+        // Simple brightness formula (0-255)
+        const brightness = (rgb[0] * 299 + rgb[1] * 587 + rgb[2] * 114) / 1000;
+        setIsDarkMode(brightness < 128); // If brightness is less than 128, consider it dark mode
+        return;
+      }
     }
+
+    setIsDarkMode(isDark);
   }, []);
 
-  // Update colors when component mounts and when theme changes
+  // Update theme mode when component mounts and when theme changes
   useEffect(() => {
-    // Initial color update
-    updateColors();
+    // Initial theme check
+    updateThemeMode();
 
     // Set up a mutation observer to watch for theme changes
-    // This detects when the <html> element's class changes (common for theme toggling)
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (
-          mutation.type === 'attributes' &&
-          mutation.attributeName === 'class'
-        ) {
-          // Theme likely changed, update colors
-          updateColors();
-        }
-      });
+    const observer = new MutationObserver(() => {
+      updateThemeMode();
     });
 
     // Start observing the document with the configured parameters
-    observer.observe(document.documentElement, { attributes: true });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
     // Clean up
     return () => observer.disconnect();
-  }, [updateColors]);
+  }, [updateThemeMode]);
 
   // Calculate date for a specific week number
   const getDateForWeek = useCallback((weekNum: number) => {
@@ -219,12 +241,27 @@ export function WeeksGrid({ weeksLived, totalWeeks }: WeeksGridProps) {
       const x = ((week - 1) % columns) * (boxSize + gapSize)
       const y = Math.floor((week - 1) / columns) * (boxSize + gapSize)
 
-      // Set fill style based on state
+      // Calculate the percentage through life for heatmap
+      const percentage = isLived ? week / totalWeeks : 0;
+
+      // Get color from the heatmap gradient
+      let fillColor;
       if (isLived) {
-        ctx.fillStyle = isHovered ? colors.primaryHover : colors.primary
+        // Cold to hot gradient for lived weeks
+        fillColor = getHeatmapColor(percentage, isDarkMode);
+        // Add hover effect if needed
+        if (isHovered) {
+          fillColor = addAlpha(fillColor, 0.8);
+        }
       } else {
-        ctx.fillStyle = isHovered ? colors.mutedHover : colors.muted
+        // Use a muted color for future weeks
+        fillColor = isDarkMode ? 'rgba(50, 50, 50, 0.5)' : 'rgba(220, 220, 220, 0.5)';
+        if (isHovered) {
+          fillColor = isDarkMode ? 'rgba(70, 70, 70, 0.7)' : 'rgba(200, 200, 200, 0.7)';
+        }
       }
+
+      ctx.fillStyle = fillColor;
 
       // Draw rounded rectangle
       ctx.beginPath()
@@ -240,7 +277,7 @@ export function WeeksGrid({ weeksLived, totalWeeks }: WeeksGridProps) {
       ctx.quadraticCurveTo(x, y, x + radius, y)
       ctx.fill()
     }
-  }, [boxSize, gapSize, columns, weeksLived, totalWeeks, hoveredWeek, colors])
+  }, [boxSize, gapSize, columns, weeksLived, totalWeeks, hoveredWeek, isDarkMode])
 
   // Update canvas when parameters change
   useEffect(() => {

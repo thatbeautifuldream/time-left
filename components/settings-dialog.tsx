@@ -3,28 +3,33 @@ import { Calendar } from "@/components/ui/calendar"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { useStore } from "@/lib/store"
 import { Cog } from "lucide-react"
 import { useState } from "react"
 
 interface SettingsDialogProps {
     birthdate: string
     lifeExpectancy: number
-    setBirthdate: (date: string) => void
-    setLifeExpectancy: (years: number) => void
 }
 
 export function SettingsDialog({
     birthdate,
     lifeExpectancy,
-    setBirthdate,
-    setLifeExpectancy,
 }: SettingsDialogProps) {
     const [open, setOpen] = useState(false)
-    const [expectancy, setExpectancy] = useState<number>(lifeExpectancy)
+    const validateAndSetLifeExpectancy = useStore(state => state.validateAndSetLifeExpectancy)
+    const validateAndSetBirthdate = useStore(state => state.validateAndSetBirthdate)
+    const [selectedDate, setSelectedDate] = useState<Date | undefined>(birthdate ? new Date(birthdate) : undefined)
 
-    const handleSaveLifeExpectancy = () => {
-        setLifeExpectancy(expectancy)
+    const handleClose = () => {
         setOpen(false)
+    }
+
+    const handleDateChange = (date: Date | undefined) => {
+        if (date) {
+            setSelectedDate(date)
+            validateAndSetBirthdate(date.toISOString())
+        }
     }
 
     return (
@@ -46,11 +51,10 @@ export function SettingsDialog({
                                 id="life-expectancy"
                                 type="number"
                                 min={1}
-                                max={120}
-                                value={expectancy}
-                                onChange={(e) => setExpectancy(Number(e.target.value))}
+                                max={200}
+                                value={lifeExpectancy}
+                                onChange={(e) => validateAndSetLifeExpectancy(Number(e.target.value))}
                             />
-                            <Button onClick={handleSaveLifeExpectancy}>Save</Button>
                         </div>
                     </div>
                     <div>
@@ -58,14 +62,15 @@ export function SettingsDialog({
                         <div className="min-h-[350px] mt-1">
                             <Calendar
                                 mode="single"
-                                selected={new Date(birthdate)}
-                                onSelect={(date) => date && setBirthdate(date.toISOString())}
+                                selected={selectedDate}
+                                onSelect={handleDateChange}
                                 disabled={{ after: new Date() }}
                                 className="mx-auto"
                                 showYearSwitcher={true}
                             />
                         </div>
                     </div>
+                    <Button onClick={handleClose} className="mt-4">Close</Button>
                 </div>
             </DialogContent>
         </Dialog>
